@@ -11,4 +11,3 @@ class EndpointConfig:
     url: str
     expected_status: int = 200
     timeout_seconds: float = 5.0
-
