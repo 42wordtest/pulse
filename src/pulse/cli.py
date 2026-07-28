@@ -11,6 +11,11 @@ app = typer.Typer(
 console = Console()
 
 
+@app.callback()
+def main() -> None:
+    """Pulse checks configured HTTP endpoints."""
+
+
 @app.command()
 def check() -> None:
     """Run configured health checks."""
