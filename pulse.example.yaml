@@ -1,0 +1,8 @@
+checks:
+  - name: example-site
+    url: https://example.com
+
+  - name: api-health
+    url: https://api.example.com/health
+    expected_status: 200
+    timeout_seconds: 5
