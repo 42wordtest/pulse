@@ -1,36 +1,39 @@
+from pathlib import Path
 from urllib.parse import urlparse
 
 import yaml
 
-from src.pulse.models import EndpointConfig
-from pathlib import Path
+from .models import EndpointConfig
 
 
 class ConfigError(ValueError):
-    def load_config(path: Path) -> list[EndpointConfig]:
+    pass
 
-        try:
-            raw_config = yaml.safe_load(path.read_text())
-        except FileNotFoundError as error:
-            raise ConfigError(f"Configuration file not found: {path}") from error
-        except yaml.YAMLError as error:
-            raise ConfigError(f"Invalid YAML in {path}: {error}") from error
 
-        if not isinstance(raw_config, dict):
-            raise ConfigError("Configuration must be a YAML mapping.")
+def load_config(path: Path) -> list[EndpointConfig]:
 
-        raw_checks = raw_config.get("checks")
-        if not isinstance(raw_checks, list):
-            raise ConfigError("Configuration must contain a 'checks' list.")
+    try:
+        raw_config = yaml.safe_load(path.read_text())
+    except FileNotFoundError as error:
+        raise ConfigError(f"Configuration file not found: {path}") from error
+    except yaml.YAMLError as error:
+        raise ConfigError(f"Invalid YAML in {path}: {error}") from error
 
-        endpoints = [
-            _parse_endpoint(raw_check, position)
-            for position, raw_check in enumerate(raw_checks, start=1)
-        ]
+    if not isinstance(raw_config, dict):
+        raise ConfigError("Configuration must be a YAML mapping.")
 
-        _ensure_unique_names(endpoints)
+    raw_checks = raw_config.get("checks")
+    if not isinstance(raw_checks, list):
+        raise ConfigError("Configuration must contain a 'checks' list.")
 
-        return endpoints
+    endpoints = [
+        _parse_endpoint(raw_check, position)
+        for position, raw_check in enumerate(raw_checks, start=1)
+    ]
+
+    _ensure_unique_names(endpoints)
+
+    return endpoints
 
 
 def _parse_endpoint(raw_check: object, position: int) -> EndpointConfig:
