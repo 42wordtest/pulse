@@ -1,4 +1,5 @@
 """Command-line interface for Pulse."""
+
 from pathlib import Path
 
 import typer
@@ -34,6 +35,5 @@ def check() -> None:
         state = "HEALTHY" if result.healthy else "UNHEALTHY"
         latency_ms = result.latency_seconds * 1000
         console.print(
-            f"{state} {result.endpoint.name} "
-            f"({latency_ms:.0f} ms) — {result.message}"
+            f"{state} {result.endpoint.name} ({latency_ms:.0f} ms) — {result.message}"
         )
