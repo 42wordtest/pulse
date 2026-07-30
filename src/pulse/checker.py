@@ -20,9 +20,7 @@ class EndpointCheckResult:
 
 
 def check_endpoint(
-    endpoint: EndpointConfig,
-    *,
-    client: httpx.Client | None = None,
+    endpoint: EndpointConfig, *, client: httpx.Client | None = None
 ) -> EndpointCheckResult:
     """Send a synchronous GET request to an endpoint and report its outcome."""
     if client is not None:
@@ -33,8 +31,7 @@ def check_endpoint(
 
 
 def _send_get_request(
-    endpoint: EndpointConfig,
-    client: httpx.Client,
+    endpoint: EndpointConfig, client: httpx.Client
 ) -> EndpointCheckResult:
     """Perform the request and translate expected network failures into results."""
     started_at = perf_counter()

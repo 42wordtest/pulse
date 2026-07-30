@@ -47,9 +47,7 @@ def test_check_endpoint_marks_an_unexpected_status_unhealthy() -> None:
     def handler(request: httpx.Request) -> httpx.Response:
         return httpx.Response(503, request=request)
 
-    with httpx.Client(
-        transport=httpx.MockTransport(handler)
-    ) as client:
+    with httpx.Client(transport=httpx.MockTransport(handler)) as client:
         result = check_endpoint(endpoint, client=client)
 
     assert result.healthy is False
