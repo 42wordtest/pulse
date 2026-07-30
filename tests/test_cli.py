@@ -25,16 +25,21 @@ checks:
 """
     )
 
-    def fake_check(endpoint: EndpointConfig) -> EndpointCheckResult:
-        return EndpointCheckResult(
-            endpoint=endpoint,
-            healthy=True,
-            latency_seconds=0.123,
-            status_code=200,
-            message="Healthy: received expected HTTP 200.",
-        )
+    async def fake_check_endpoints(
+        endpoints: list[EndpointConfig],
+    ) -> list[EndpointCheckResult]:
+        endpoint = endpoints[0]
+        return [
+            EndpointCheckResult(
+                endpoint=endpoint,
+                healthy=True,
+                latency_seconds=0.123,
+                status_code=200,
+                message="Healthy: received expected HTTP 200.",
+            )
+        ]
 
-    monkeypatch.setattr(cli, "check_endpoint", fake_check)
+    monkeypatch.setattr(cli, "check_endpoints", fake_check_endpoints)
 
     result = runner.invoke(cli.app, ["check"])
 

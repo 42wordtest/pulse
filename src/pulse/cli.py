@@ -1,11 +1,12 @@
 """Command-line interface for Pulse."""
 
+import asyncio
 from pathlib import Path
 
 import typer
 from rich.console import Console
 
-from .checker import check_endpoint
+from .checker import check_endpoints
 from .config import ConfigError, load_config
 
 app = typer.Typer(
@@ -30,7 +31,11 @@ def check() -> None:
         console.print(f"Configuration error: {error}")
         raise typer.Exit(code=1)
 
-    results = [check_endpoint(endpoint) for endpoint in endpoints]
+    results = asyncio.run(check_endpoints(endpoints))
+
+    if any(not result.healthy for result in results):
+        raise typer.Exit(code=1)
+
     for result in results:
         state = "HEALTHY" if result.healthy else "UNHEALTHY"
         latency_ms = result.latency_seconds * 1000
