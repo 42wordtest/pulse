@@ -8,3 +8,6 @@ build/
 *.egg-info/.idea/
 .idea
 pulse.yaml
+Goals.md
+.pulse/
+.pulse
