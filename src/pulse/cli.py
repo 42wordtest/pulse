@@ -1,4 +1,5 @@
 """Command-line interface for Pulse."""
+
 import sqlite3
 from pathlib import Path
 
@@ -7,7 +8,7 @@ from rich.console import Console
 
 from .checker import check_endpoint
 from .config import ConfigError, load_config
-from .storage import insert_check_result, initialise_database
+from .storage import initialise_database, insert_check_result
 
 app = typer.Typer(
     no_args_is_help=True,

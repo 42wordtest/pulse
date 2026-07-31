@@ -1,7 +1,7 @@
 """SQLite persistence for endpoint check results."""
 
 import sqlite3
-from datetime import datetime, timezone
+from datetime import datetime, UTC
 from pathlib import Path
 
 from .checker import EndpointCheckResult
@@ -50,7 +50,7 @@ def insert_check_result(
     checked_at: datetime | None = None,
 ) -> None:
     """Insert one completed endpoint check into an existing transaction."""
-    timestamp = checked_at or datetime.now(timezone.utc)
+    timestamp = checked_at or datetime.now(UTC)
 
     connection.execute(
         INSERT_CHECK_RESULT,

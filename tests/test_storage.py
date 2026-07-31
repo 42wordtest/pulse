@@ -1,12 +1,12 @@
 """Tests for SQLite check-result storage."""
 
 import sqlite3
-from datetime import datetime, timezone
+from datetime import datetime, UTC
 from pathlib import Path
 
 from pulse.checker import EndpointCheckResult
 from pulse.models import EndpointConfig
-from pulse.storage import initialize_database, insert_check_result
+from pulse.storage import initialise_database, insert_check_result
 
 
 def test_insert_check_result_persists_a_failed_check(tmp_path: Path) -> None:
@@ -19,9 +19,9 @@ def test_insert_check_result_persists_a_failed_check(tmp_path: Path) -> None:
         status_code=503,
         message="Unhealthy: expected HTTP 200 but received HTTP 503.",
     )
-    checked_at = datetime(2026, 7, 31, 12, 0, tzinfo=timezone.utc)
+    checked_at = datetime(2026, 7, 31, 12, 0, tzinfo=UTC)
 
-    initialize_database(database_path)
+    initialise_database(database_path)
     with sqlite3.connect(database_path) as connection:
         insert_check_result(connection, result, checked_at=checked_at)
 
