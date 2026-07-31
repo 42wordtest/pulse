@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 from typer.testing import CliRunner
 
-import pulse.cli as cli
+from pulse import cli
 from pulse.checker import EndpointCheckResult
 from pulse.models import EndpointConfig
 
