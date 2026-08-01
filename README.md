@@ -55,7 +55,7 @@ greater than zero.
 Run all checks in `pulse.yaml`:
 
 ```bash
-uv run pulse check
+make pulse
 ```
 
 Example output:
@@ -72,7 +72,7 @@ automatically and is git-ignored.
 Run the test suite, linting, and type checking:
 
 ```bash
-uv run pytest
-uv run ruff check .
-uv run mypy src
+make pytest
+make lint
+make check
 ```
