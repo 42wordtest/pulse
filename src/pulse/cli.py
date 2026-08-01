@@ -37,10 +37,10 @@ def check() -> None:
     initialise_database(database_path)
 
     results = asyncio.run(check_endpoints(endpoints))
-    
+
     if any(not result.healthy for result in results):
         raise typer.Exit(code=1)
-        
+
     with sqlite3.connect(database_path) as connection:
         for result in results:
             insert_check_result(connection, result)
