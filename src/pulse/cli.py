@@ -1,8 +1,8 @@
 """Command-line interface for Pulse."""
 
 import asyncio
-from datetime import UTC, datetime, timedelta
 import sqlite3
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import typer
@@ -10,7 +10,7 @@ from rich.console import Console
 
 from .checker import check_endpoints
 from .config import ConfigError, load_config
-from .storage import initialise_database, insert_check_result, get_availability
+from .storage import get_availability, initialise_database, insert_check_result
 
 app = typer.Typer(
     no_args_is_help=True,
@@ -50,6 +50,7 @@ def check() -> None:
             console.print(
                 f"{state} {result.endpoint.name} ({latency_ms:.0f} ms) — {result.message}"
             )
+
 
 @app.command()
 def availability(

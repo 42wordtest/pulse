@@ -78,6 +78,7 @@ def insert_check_result(
         ),
     )
 
+
 def get_availability(
     connection: sqlite3.Connection,
     *,

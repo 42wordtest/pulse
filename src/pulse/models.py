@@ -12,6 +12,7 @@ class EndpointConfig:
     expected_status: int = 200
     timeout_seconds: float = 5.0
 
+
 @dataclass(frozen=True, slots=True)
 class AvailabilitySummary:
     endpoint_name: str
