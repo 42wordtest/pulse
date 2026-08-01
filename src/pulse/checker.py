@@ -1,5 +1,6 @@
-"""Synchronous HTTP endpoint checks."""
+"""Asynchronous HTTP endpoint checks."""
 
+import asyncio
 from dataclasses import dataclass
 from time import perf_counter
 
@@ -19,23 +20,34 @@ class EndpointCheckResult:
     status_code: int | None = None
 
 
-def check_endpoint(
-    endpoint: EndpointConfig, *, client: httpx.Client | None = None
+async def check_endpoint(
+    endpoint: EndpointConfig,
+    *,
+    client: httpx.AsyncClient,
 ) -> EndpointCheckResult:
-    """Send a synchronous GET request to an endpoint and report its outcome."""
-    if client is not None:
-        return _send_get_request(endpoint, client)
-
-    with httpx.Client(timeout=endpoint.timeout_seconds) as new_client:
-        return _send_get_request(endpoint, new_client)
+    """Send asynchronous GET request to an endpoint and report its outcome."""
+    return await _send_get_request(endpoint, client)
 
 
-def _send_get_request(endpoint: EndpointConfig, client: httpx.Client) -> EndpointCheckResult:
+async def check_endpoints(
+    endpoints: list[EndpointConfig],
+) -> list[EndpointCheckResult]:
+    async with httpx.AsyncClient() as client:
+        tasks = [check_endpoint(endpoint, client=client) for endpoint in endpoints]
+        return await asyncio.gather(*tasks)
+
+
+async def _send_get_request(
+    endpoint: EndpointConfig, client: httpx.AsyncClient
+) -> EndpointCheckResult:
     """Perform the request and translate expected network failures into results."""
     started_at = perf_counter()
 
     try:
-        response = client.get(endpoint.url)
+        response = await client.get(
+            endpoint.url,
+            timeout=endpoint.timeout_seconds,
+        )
     except httpx.TimeoutException:
         return EndpointCheckResult(
             endpoint=endpoint,
