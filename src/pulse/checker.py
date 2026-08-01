@@ -54,8 +54,7 @@ async def _send_get_request(
             healthy=False,
             latency_seconds=perf_counter() - started_at,
             message=(
-                f"Timed out after {endpoint.timeout_seconds:g}s while requesting "
-                f"{endpoint.url}."
+                f"Timed out after {endpoint.timeout_seconds:g}s while requesting {endpoint.url}."
             ),
         )
     except httpx.ConnectError as error:

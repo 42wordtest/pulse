@@ -72,9 +72,7 @@ async def test_check_endpoint_reports_timeouts_cleanly() -> None:
     assert result.healthy is False
     assert result.status_code is None
     assert result.latency_seconds >= 0
-    assert result.message == (
-        "Timed out after 2s while requesting https://example.com/health."
-    )
+    assert result.message == ("Timed out after 2s while requesting https://example.com/health.")
 
 
 @pytest.mark.anyio
@@ -92,6 +90,5 @@ async def test_check_endpoint_reports_connection_errors_cleanly() -> None:
     assert result.status_code is None
     assert result.latency_seconds >= 0
     assert result.message == (
-        "Connection error while requesting https://example.com/health: "
-        "connection refused"
+        "Connection error while requesting https://example.com/health: connection refused"
     )

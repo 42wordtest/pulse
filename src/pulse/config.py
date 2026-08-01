@@ -71,8 +71,7 @@ def _read_expected_status(value: object, check_name: str) -> int:
     """Validate an expected HTTP status code."""
     if isinstance(value, bool) or not isinstance(value, int):
         raise ConfigError(
-            f"Check '{check_name}' has an invalid 'expected_status'. "
-            "It must be an integer."
+            f"Check '{check_name}' has an invalid 'expected_status'. It must be an integer."
         )
 
     if not 100 <= value <= 599:
@@ -88,16 +87,14 @@ def _read_timeout_seconds(value: object, check_name: str) -> float:
     """Validate an HTTP timeout value."""
     if isinstance(value, bool) or not isinstance(value, int | float):
         raise ConfigError(
-            f"Check '{check_name}' has an invalid 'timeout_seconds'. "
-            "It must be a number."
+            f"Check '{check_name}' has an invalid 'timeout_seconds'. It must be a number."
         )
 
     timeout_seconds = float(value)
 
     if timeout_seconds <= 0:
         raise ConfigError(
-            f"Check '{check_name}' has an invalid 'timeout_seconds'. "
-            "It must be greater than zero."
+            f"Check '{check_name}' has an invalid 'timeout_seconds'. It must be greater than zero."
         )
 
     return timeout_seconds
