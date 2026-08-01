@@ -37,7 +37,9 @@ async def check_endpoints(
         return await asyncio.gather(*tasks)
 
 
-async def _send_get_request(endpoint: EndpointConfig, client: httpx.AsyncClient) -> EndpointCheckResult:
+async def _send_get_request(
+    endpoint: EndpointConfig, client: httpx.AsyncClient
+) -> EndpointCheckResult:
     """Perform the request and translate expected network failures into results."""
     started_at = perf_counter()
 
