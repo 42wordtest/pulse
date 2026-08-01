@@ -5,6 +5,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from .checker import EndpointCheckResult
+from .models import AvailabilitySummary
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS check_results (
@@ -32,6 +33,18 @@ INSERT INTO check_results (
     latency_ms,
     error_message
 ) VALUES (?, ?, ?, ?, ?, ?, ?);
+"""
+
+GET_AVAILABILITY = """
+SELECT
+    endpoint_name,
+    url,
+    COUNT(*) AS total_checks,
+    SUM(CASE WHEN healthy = 1 THEN 1 ELSE 0 END) AS healthy_checks
+FROM check_results
+WHERE checked_at >= ?
+GROUP BY endpoint_name, url
+ORDER BY endpoint_name;
 """
 
 
@@ -64,3 +77,23 @@ def insert_check_result(
             None if result.healthy else result.message,
         ),
     )
+
+def get_availability(
+    connection: sqlite3.Connection,
+    *,
+    since: datetime,
+) -> list[AvailabilitySummary]:
+    rows = connection.execute(
+        GET_AVAILABILITY,
+        (since.isoformat(),),
+    ).fetchall()
+
+    return [
+        AvailabilitySummary(
+            endpoint_name=endpoint_name,
+            url=url,
+            total_checks=total_checks,
+            healthy_checks=healthy_checks,
+        )
+        for endpoint_name, url, total_checks, healthy_checks in rows
+    ]
