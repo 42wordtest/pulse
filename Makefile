@@ -1,3 +1,6 @@
+check:
+	uv run mypy src
+
 lint:
 	uv run ruff format . && uv run ruff format --check . && uv run ruff check .
 
