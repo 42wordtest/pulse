@@ -33,10 +33,7 @@ def detect_availability_regression(
     allowed_drop_percentage_points: float = 2.0,
 ) -> AvailabilityRegression | None:
     """Return None when there is insufficient data; otherwise compare windows."""
-    if (
-            recent.total_checks < minimum_samples
-            or baseline.total_checks < minimum_samples
-    ):
+    if recent.total_checks < minimum_samples or baseline.total_checks < minimum_samples:
         return None
 
     recent_percentage = recent.percentage
