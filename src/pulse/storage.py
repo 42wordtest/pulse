@@ -59,6 +59,7 @@ WHERE endpoint_name = ?
   AND checked_at < ?;
 """
 
+
 def initialise_database(database_path: Path) -> None:
     """Create the result database and schema when they do not yet exist."""
     database_path.parent.mkdir(parents=True, exist_ok=True)
