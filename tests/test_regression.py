@@ -1,4 +1,4 @@
-from pulse.regression import detect_availability_regression, AvailabilityWindow
+from pulse.regression import AvailabilityWindow, detect_availability_regression
 
 
 def test_detects_an_availability_drop() -> None:

@@ -6,6 +6,7 @@ from pathlib import Path
 
 from .checker import EndpointCheckResult
 from .models import AvailabilitySummary
+from .regression import AvailabilityWindow
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS check_results (
@@ -47,6 +48,16 @@ GROUP BY endpoint_name, url
 ORDER BY endpoint_name;
 """
 
+GET_AVAILABILITY_WINDOW = """
+SELECT
+    COUNT(*) AS total_checks,
+    SUM(CASE WHEN healthy = 1 THEN 1 ELSE 0 END) AS healthy_checks
+FROM check_results
+WHERE endpoint_name = ?
+  AND url = ?
+  AND checked_at >= ?
+  AND checked_at < ?;
+"""
 
 def initialise_database(database_path: Path) -> None:
     """Create the result database and schema when they do not yet exist."""
@@ -98,3 +109,27 @@ def get_availability(
         )
         for endpoint_name, url, total_checks, healthy_checks in rows
     ]
+
+
+def get_availability_window(
+    connection: sqlite3.Connection,
+    *,
+    endpoint_name: str,
+    url: str,
+    since: datetime,
+    until: datetime,
+) -> AvailabilityWindow:
+    """Return one endpoint's check counts within a half-open time window."""
+    row = connection.execute(
+        GET_AVAILABILITY_WINDOW,
+        (endpoint_name, url, since.isoformat(), until.isoformat()),
+    ).fetchone()
+
+    if row is None:
+        return AvailabilityWindow(healthy_checks=0, total_checks=0)
+
+    total_checks, healthy_checks = row
+    return AvailabilityWindow(
+        healthy_checks=healthy_checks or 0,
+        total_checks=total_checks,
+    )
