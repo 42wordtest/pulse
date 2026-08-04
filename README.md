@@ -67,12 +67,66 @@ HEALTHY example-site (123 ms) — Healthy: received expected HTTP 200.
 Results are stored locally in `.pulse/pulse.db`. The database is created
 automatically and is git-ignored.
 
+## View availability
+
+Availability is the percentage of recorded checks that were healthy within a
+time window. By default, Pulse reports the last 24 hours:
+
+```bash
+make availability
+```
+
+Set `HOURS` to use a different window:
+
+```bash
+make availability HOURS=168
+```
+
+Example output:
+
+```text
+example-site: 99.2% (119/120 healthy)
+```
+
+No recorded checks are treated as unknown. Pulse prints a no-results message
+rather than reporting 100% availability.
+
+## Detect reliability regressions
+
+Compare recent availability with an earlier baseline:
+
+```bash
+make regression
+```
+
+The default comparison is the last hour against the preceding seven days. Both
+windows can be changed:
+
+```bash
+make regression RECENT_HOURS=2 BASELINE_HOURS=168
+```
+
+The baseline ends when the recent window begins, so the periods do not overlap.
+For example, a two-hour recent window and 168-hour baseline compare:
+
+```text
+baseline: the 168 hours before the recent window
+recent:   the last 2 hours
+```
+
+Pulse currently requires at least 10 recorded checks in both windows. It prints
+`insufficient data` until enough history exists. A regression is reported when
+recent availability drops by at least two percentage points from the baseline.
+
+For meaningful availability and regression data, run `make pulse` at a regular
+cadence, such as every five minutes with cron or another scheduler.
+
 ## Development checks
 
 Run the test suite, linting, and type checking:
 
 ```bash
-make pytest
-make lint
+make test
 make check
+make quality
 ```

@@ -6,7 +6,11 @@ from pathlib import Path
 
 from pulse.checker import EndpointCheckResult
 from pulse.models import EndpointConfig
-from pulse.storage import initialise_database, insert_check_result
+from pulse.storage import (
+    get_availability_window,
+    initialise_database,
+    insert_check_result,
+)
 
 
 def test_insert_check_result_persists_a_failed_check(tmp_path: Path) -> None:
@@ -43,3 +47,43 @@ def test_insert_check_result_persists_a_failed_check(tmp_path: Path) -> None:
         123.0,
         "Unhealthy: expected HTTP 200 but received HTTP 503.",
     )
+
+
+def test_get_availability_window_returns_counts_within_its_bounds(
+    tmp_path: Path,
+) -> None:
+    """The window includes its start but excludes its end."""
+    database_path = tmp_path / "pulse.db"
+    endpoint = EndpointConfig("api", "https://api.example.com/health")
+    start = datetime(2026, 8, 4, 12, 0, tzinfo=UTC)
+    end = datetime(2026, 8, 4, 13, 0, tzinfo=UTC)
+    healthy_result = EndpointCheckResult(
+        endpoint=endpoint,
+        healthy=True,
+        latency_seconds=0.1,
+        status_code=200,
+        message="Healthy: received expected HTTP 200.",
+    )
+    failed_result = EndpointCheckResult(
+        endpoint=endpoint,
+        healthy=False,
+        latency_seconds=0.2,
+        status_code=503,
+        message="Unhealthy: expected HTTP 200 but received HTTP 503.",
+    )
+
+    initialise_database(database_path)
+    with sqlite3.connect(database_path) as connection:
+        insert_check_result(connection, healthy_result, checked_at=start)
+        insert_check_result(connection, failed_result, checked_at=end)
+
+        window = get_availability_window(
+            connection,
+            endpoint_name=endpoint.name,
+            url=endpoint.url,
+            since=start,
+            until=end,
+        )
+
+    assert window.healthy_checks == 1
+    assert window.total_checks == 1
