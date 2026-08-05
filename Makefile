@@ -21,3 +21,6 @@ RECENT_HOURS ?= 2
 BASELINE_HOURS ?= 168
 regression:
 	uv run pulse regression --recent-hours $(RECENT_HOURS) --baseline-hours $(BASELINE_HOURS)
+
+alerts:
+	uv run pulse alerts
