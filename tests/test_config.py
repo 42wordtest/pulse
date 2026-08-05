@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from pulse.config import ConfigError, load_config
+from pulse.config import ConfigError, load_config, load_pulse_config
 
 
 def test_load_config_returns_endpoint_configs_with_defaults(tmp_path: Path) -> None:
@@ -45,6 +45,86 @@ checks:
     assert len(endpoints) == 1
     assert endpoints[0].expected_status == 204
     assert endpoints[0].timeout_seconds == 2.5
+
+
+def test_load_pulse_config_loads_availability_alert_rules(tmp_path: Path) -> None:
+    """Alert rules should reference configured endpoints and notification targets."""
+    config_file = tmp_path / "pulse.yaml"
+    config_file.write_text(
+        """
+checks:
+  - name: payments-api
+    url: https://payments.example.com/health
+alerts:
+  - name: payments-availability
+    endpoint: payments-api
+    type: availability_below
+    window_hours: 2
+    min_samples: 20
+    threshold_percent: 99.5
+    notifications:
+      - type: console
+      - type: webhook
+        url_env: PULSE_ALERT_WEBHOOK_URL
+"""
+    )
+
+    config = load_pulse_config(config_file)
+
+    assert len(config.alert_rules) == 1
+    rule = config.alert_rules[0]
+    assert rule.name == "payments-availability"
+    assert rule.endpoint_name == "payments-api"
+    assert rule.window_hours == 2
+    assert rule.min_samples == 20
+    assert rule.threshold_percent == 99.5
+    assert [notification.type for notification in rule.notifications] == [
+        "console",
+        "webhook",
+    ]
+    assert rule.notifications[1].url_env == "PULSE_ALERT_WEBHOOK_URL"
+
+
+def test_load_pulse_config_rejects_alerts_for_unknown_endpoints(tmp_path: Path) -> None:
+    """Alert rules must point at checks declared in the same file."""
+    config_file = tmp_path / "pulse.yaml"
+    config_file.write_text(
+        """
+checks:
+  - name: payments-api
+    url: https://payments.example.com/health
+alerts:
+  - name: unknown-endpoint-alert
+    endpoint: missing-api
+    threshold_percent: 99
+"""
+    )
+
+    with pytest.raises(ConfigError, match="must reference a configured endpoint"):
+        load_pulse_config(config_file)
+
+
+def test_load_pulse_config_rejects_webhooks_without_environment_variables(
+    tmp_path: Path,
+) -> None:
+    """Webhook URLs must be supplied through an environment variable name."""
+    config_file = tmp_path / "pulse.yaml"
+    config_file.write_text(
+        """
+checks:
+  - name: payments-api
+    url: https://payments.example.com/health
+alerts:
+  - name: payments-availability
+    endpoint: payments-api
+    threshold_percent: 99
+    notifications:
+      - type: webhook
+"""
+    )
+
+    with pytest.raises(ConfigError, match="must have 'url_env'"):
+        load_pulse_config(config_file)
 
 
 def test_load_config_raises_error_when_file_does_not_exist(tmp_path: Path) -> None:
