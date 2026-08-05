@@ -1,6 +1,7 @@
 """Domain models used by Pulse."""
 
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Literal
 
 
@@ -52,3 +53,15 @@ class PulseConfig:
 
     endpoints: tuple[EndpointConfig, ...]
     alert_rules: tuple[AlertRule, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class AlertState:
+    """Persisted notification state for one alert rule and endpoint."""
+
+    rule_name: str
+    endpoint_name: str
+    active: bool
+    opened_at: datetime
+    last_notified_at: datetime
+    resolved_at: datetime | None
