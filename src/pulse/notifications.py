@@ -43,8 +43,7 @@ def _deliver_notifications(
     """Send notifications with a shared client."""
     env = os.environ if environment is None else environment
     return [
-        _deliver_notification(event, notification, env, client)
-        for notification in notifications
+        _deliver_notification(event, notification, env, client) for notification in notifications
     ]
 
 

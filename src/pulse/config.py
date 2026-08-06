@@ -199,9 +199,7 @@ def _parse_alert_rule(
 def _read_positive_int(value: object, rule_name: str, field_name: str) -> int:
     """Return a positive integer alert-rule field."""
     if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
-        raise ConfigError(
-            f"Alert rule '{rule_name}' must have a positive integer '{field_name}'."
-        )
+        raise ConfigError(f"Alert rule '{rule_name}' must have a positive integer '{field_name}'.")
 
     return value
 
@@ -209,9 +207,7 @@ def _read_positive_int(value: object, rule_name: str, field_name: str) -> int:
 def _read_percentage(value: object, rule_name: str) -> float:
     """Return an availability percentage between zero and one hundred."""
     if isinstance(value, bool) or not isinstance(value, int | float):
-        raise ConfigError(
-            f"Alert rule '{rule_name}' must have a numeric 'threshold_percent'."
-        )
+        raise ConfigError(f"Alert rule '{rule_name}' must have a numeric 'threshold_percent'.")
 
     percentage = float(value)
     if not 0 <= percentage <= 100:
