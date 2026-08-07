@@ -5,7 +5,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from .checker import EndpointCheckResult
-from .models import AvailabilitySummary
+from .models import AlertState, AvailabilitySummary
 from .regression import AvailabilityWindow
 
 SCHEMA = """
@@ -22,6 +22,16 @@ CREATE TABLE IF NOT EXISTS check_results (
 
 CREATE INDEX IF NOT EXISTS idx_check_results_endpoint_checked_at
 ON check_results (endpoint_name, checked_at);
+
+CREATE TABLE IF NOT EXISTS alert_states (
+    rule_name TEXT NOT NULL,
+    endpoint_name TEXT NOT NULL,
+    active INTEGER NOT NULL,
+    opened_at TEXT NOT NULL,
+    last_notified_at TEXT NOT NULL,
+    resolved_at TEXT,
+    PRIMARY KEY (rule_name, endpoint_name)
+);
 """
 
 INSERT_CHECK_RESULT = """
@@ -57,6 +67,32 @@ WHERE endpoint_name = ?
   AND url = ?
   AND checked_at >= ?
   AND checked_at < ?;
+"""
+
+GET_ALERT_STATE = """
+SELECT rule_name, endpoint_name, active, opened_at, last_notified_at, resolved_at
+FROM alert_states
+WHERE rule_name = ? AND endpoint_name = ?;
+"""
+
+ACTIVATE_ALERT_STATE = """
+INSERT INTO alert_states (
+    rule_name, endpoint_name, active, opened_at, last_notified_at, resolved_at
+) VALUES (?, ?, 1, ?, ?, NULL)
+ON CONFLICT(rule_name, endpoint_name) DO UPDATE SET
+    active = 1,
+    opened_at = CASE
+        WHEN alert_states.active = 0 THEN excluded.opened_at
+        ELSE alert_states.opened_at
+    END,
+    last_notified_at = excluded.last_notified_at,
+    resolved_at = NULL;
+"""
+
+RESOLVE_ALERT_STATE = """
+UPDATE alert_states
+SET active = 0, last_notified_at = ?, resolved_at = ?
+WHERE rule_name = ? AND endpoint_name = ?;
 """
 
 
@@ -133,4 +169,63 @@ def get_availability_window(
     return AvailabilityWindow(
         healthy_checks=healthy_checks or 0,
         total_checks=total_checks,
+    )
+
+
+def get_alert_state(
+    connection: sqlite3.Connection,
+    *,
+    rule_name: str,
+    endpoint_name: str,
+) -> AlertState | None:
+    """Return the persisted state for an alert rule, if it has ever notified."""
+    row = connection.execute(GET_ALERT_STATE, (rule_name, endpoint_name)).fetchone()
+    if row is None:
+        return None
+
+    (
+        stored_rule_name,
+        stored_endpoint_name,
+        active,
+        opened_at,
+        last_notified_at,
+        resolved_at,
+    ) = row
+    return AlertState(
+        rule_name=stored_rule_name,
+        endpoint_name=stored_endpoint_name,
+        active=bool(active),
+        opened_at=datetime.fromisoformat(opened_at),
+        last_notified_at=datetime.fromisoformat(last_notified_at),
+        resolved_at=datetime.fromisoformat(resolved_at) if resolved_at is not None else None,
+    )
+
+
+def activate_alert_state(
+    connection: sqlite3.Connection,
+    *,
+    rule_name: str,
+    endpoint_name: str,
+    occurred_at: datetime,
+) -> None:
+    """Persist an alert opening and its notification timestamp."""
+    timestamp = occurred_at.isoformat()
+    connection.execute(
+        ACTIVATE_ALERT_STATE,
+        (rule_name, endpoint_name, timestamp, timestamp),
+    )
+
+
+def resolve_alert_state(
+    connection: sqlite3.Connection,
+    *,
+    rule_name: str,
+    endpoint_name: str,
+    occurred_at: datetime,
+) -> None:
+    """Persist the recovery of an active alert."""
+    timestamp = occurred_at.isoformat()
+    connection.execute(
+        RESOLVE_ALERT_STATE,
+        (timestamp, timestamp, rule_name, endpoint_name),
     )
