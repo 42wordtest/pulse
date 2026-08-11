@@ -19,7 +19,7 @@ pulse = "pulse.cli:app"
 dev = [
     "mypy>=1.13.0",
     "pytest>=8.0.0",
-    "ruff>=0.16.1",
+    "ruff>=0.16.2",
     "types-pyyaml>=6.0.12.20260724",
 ]
 
