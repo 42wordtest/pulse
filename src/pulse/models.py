@@ -31,7 +31,7 @@ class AvailabilitySummary:
 class NotificationConfig:
     """One configured alert delivery destination."""
 
-    type: Literal["console", "webhook"]
+    type: Literal["console", "webhook", "discord"]
     url_env: str | None = None
 
 
