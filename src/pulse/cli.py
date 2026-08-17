@@ -8,14 +8,19 @@ from pathlib import Path
 import typer
 from rich.console import Console
 
+from .alerts import evaluate_availability_alert, get_alert_event
 from .checker import check_endpoints
-from .config import ConfigError, load_config
+from .config import ConfigError, load_config, load_pulse_config
+from .notifications import deliver_notifications
 from .regression import detect_availability_regression
 from .storage import (
+    activate_alert_state,
+    get_alert_state,
     get_availability,
     get_availability_window,
     initialise_database,
     insert_check_result,
+    resolve_alert_state,
 )
 
 app = typer.Typer(
@@ -142,3 +147,76 @@ def regression(
                 console.print(
                     f"{endpoint.name}: stable — {result.recent_percentage:.1f}% availability"
                 )
+
+
+@app.command()
+def alerts() -> None:
+    """Evaluate alert rules and deliver opening or recovery notifications."""
+    try:
+        config = load_pulse_config(Path("pulse.yaml"))
+    except ConfigError as error:
+        console.print(f"Configuration error: {error}")
+        raise typer.Exit(code=1) from error
+
+    if not config.alert_rules:
+        console.print("No alert rules are configured.")
+        return
+
+    endpoints = {endpoint.name: endpoint for endpoint in config.endpoints}
+    database_path = Path(".pulse/pulse.db")
+    initialise_database(database_path)
+    now = datetime.now(UTC)
+    has_active_alert = False
+
+    with sqlite3.connect(database_path) as connection:
+        for rule in config.alert_rules:
+            endpoint = endpoints[rule.endpoint_name]
+            evaluation = evaluate_availability_alert(
+                connection,
+                rule=rule,
+                endpoint=endpoint,
+                now=now,
+            )
+            state = get_alert_state(
+                connection,
+                rule_name=rule.name,
+                endpoint_name=endpoint.name,
+            )
+            event = get_alert_event(evaluation, state)
+
+            if evaluation.status == "insufficient_data":
+                console.print(f"INSUFFICIENT {rule.name}: {evaluation.message}")
+                continue
+
+            if evaluation.status == "alert":
+                has_active_alert = True
+
+            if event is None:
+                state_label = "ALERT ACTIVE" if evaluation.status == "alert" else "OK"
+                console.print(f"{state_label} {rule.name}: {evaluation.message}")
+                continue
+
+            deliveries = deliver_notifications(event, rule.notifications)
+            for delivery in deliveries:
+                status = "NOTIFIED" if delivery.succeeded else "NOTIFY FAILED"
+                console.print(f"{status} {delivery.channel}: {delivery.message}")
+
+            if not all(delivery.succeeded for delivery in deliveries):
+                continue
+            if event.type == "opened":
+                activate_alert_state(
+                    connection,
+                    rule_name=rule.name,
+                    endpoint_name=endpoint.name,
+                    occurred_at=now,
+                )
+            else:
+                resolve_alert_state(
+                    connection,
+                    rule_name=rule.name,
+                    endpoint_name=endpoint.name,
+                    occurred_at=now,
+                )
+
+    if has_active_alert:
+        raise typer.Exit(code=1)

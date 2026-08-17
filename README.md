@@ -121,6 +121,66 @@ recent availability drops by at least two percentage points from the baseline.
 For meaningful availability and regression data, run `make pulse` at a regular
 cadence, such as every five minutes with cron or another scheduler.
 
+## Configure alerts and notifications
+
+Alert rules evaluate stored availability and notify only when an alert opens or
+recovers. This avoids sending the same alert every time a scheduler runs.
+
+```yaml
+alerts:
+  - name: example-site-availability
+    endpoint: example-site
+    type: availability_below
+    window_hours: 1
+    min_samples: 10
+    threshold_percent: 99.0
+    notifications:
+      - type: console
+      - type: webhook
+        url_env: PULSE_ALERT_WEBHOOK_URL
+```
+
+`endpoint` must reference a configured check. The first alert type is
+`availability_below`: it opens when availability falls below
+`threshold_percent` in the configured window.
+
+Console notifications are printed by the command. Webhook URLs are read from
+the named environment variable so secrets are not stored in `pulse.yaml`:
+
+```bash
+export PULSE_ALERT_WEBHOOK_URL="https://alerts.example.com/notify"
+```
+
+### Discord notifications
+
+Use the `discord` type for a Discord incoming webhook. Pulse sends a
+Discord-compatible `content` payload and disables all mentions.
+
+```yaml
+notifications:
+  - type: discord
+    url_env: PULSE_DISCORD_WEBHOOK_URL
+```
+
+Store the Discord webhook URL in your shell or scheduler environment, never in
+`pulse.yaml` or Git:
+
+```bash
+export PULSE_DISCORD_WEBHOOK_URL="your-discord-webhook-url"
+```
+
+Rotate a Discord webhook immediately if its URL is exposed.
+
+Evaluate alert rules and deliver any opening or recovery notifications:
+
+```bash
+make alerts
+```
+
+The command exits with status 1 while one or more alerts are active, which
+makes it suitable for scheduled automation. A failed webhook delivery is shown
+clearly and is retried on the next run.
+
 ## Development checks
 
 Run the test suite, linting, and type checking:
