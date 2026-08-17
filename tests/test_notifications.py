@@ -79,8 +79,7 @@ def test_deliver_notifications_posts_a_discord_compatible_payload() -> None:
         assert json.loads(request.content) == {
             "allowed_mentions": {"parse": []},
             "content": (
-                "ALERT api-availability (api): "
-                "Availability is 90.0%, below the 99.0% threshold."
+                "ALERT api-availability (api): Availability is 90.0%, below the 99.0% threshold."
             ),
         }
         return httpx.Response(204, request=request)
