@@ -5,6 +5,7 @@ from pathlib import Path
 import pytest
 
 from pulse.config import ConfigError, load_config, load_pulse_config
+from pulse.models import NotificationConfig
 
 
 def test_load_config_returns_endpoint_configs_with_defaults(tmp_path: Path) -> None:
@@ -125,6 +126,31 @@ alerts:
 
     with pytest.raises(ConfigError, match="must have 'url_env'"):
         load_pulse_config(config_file)
+
+
+def test_load_pulse_config_loads_discord_notifications(tmp_path: Path) -> None:
+    """Discord notifications should use a configured environment variable name."""
+    config_file = tmp_path / "pulse.yaml"
+    config_file.write_text(
+        """
+checks:
+  - name: payments-api
+    url: https://payments.example.com/health
+alerts:
+  - name: payments-availability
+    endpoint: payments-api
+    threshold_percent: 99
+    notifications:
+      - type: discord
+        url_env: PULSE_DISCORD_WEBHOOK_URL
+"""
+    )
+
+    config = load_pulse_config(config_file)
+
+    assert config.alert_rules[0].notifications == (
+        NotificationConfig(type="discord", url_env="PULSE_DISCORD_WEBHOOK_URL"),
+    )
 
 
 def test_load_config_raises_error_when_file_does_not_exist(tmp_path: Path) -> None:

@@ -253,6 +253,13 @@ def _parse_notification(
                 f"Webhook notification for alert rule '{rule_name}' must have 'url_env'."
             )
         return NotificationConfig(type="webhook", url_env=url_env)
+    if notification_type == "discord":
+        url_env = raw_notification.get("url_env")
+        if not isinstance(url_env, str) or not url_env.strip():
+            raise ConfigError(
+                f"Discord notification for alert rule '{rule_name}' must have 'url_env'."
+            )
+        return NotificationConfig(type="discord", url_env=url_env)
 
     raise ConfigError(
         f"Notification {position} for alert rule '{rule_name}' has unsupported "

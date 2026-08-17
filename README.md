@@ -151,6 +151,26 @@ the named environment variable so secrets are not stored in `pulse.yaml`:
 export PULSE_ALERT_WEBHOOK_URL="https://alerts.example.com/notify"
 ```
 
+### Discord notifications
+
+Use the `discord` type for a Discord incoming webhook. Pulse sends a
+Discord-compatible `content` payload and disables all mentions.
+
+```yaml
+notifications:
+  - type: discord
+    url_env: PULSE_DISCORD_WEBHOOK_URL
+```
+
+Store the Discord webhook URL in your shell or scheduler environment, never in
+`pulse.yaml` or Git:
+
+```bash
+export PULSE_DISCORD_WEBHOOK_URL="your-discord-webhook-url"
+```
+
+Rotate a Discord webhook immediately if its URL is exposed.
+
 Evaluate alert rules and deliver any opening or recovery notifications:
 
 ```bash

@@ -67,3 +67,43 @@ def test_deliver_notifications_reports_missing_webhook_configuration() -> None:
 
     assert deliveries[0].succeeded is False
     assert "PULSE_ALERT_WEBHOOK_URL" in deliveries[0].message
+
+
+def test_deliver_notifications_posts_a_discord_compatible_payload() -> None:
+    """Discord should receive content and have all mentions disabled."""
+    event = make_event()
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.method == "POST"
+        assert request.url == "https://discord.com/api/webhooks/example"
+        assert json.loads(request.content) == {
+            "allowed_mentions": {"parse": []},
+            "content": (
+                "ALERT api-availability (api): Availability is 90.0%, below the 99.0% threshold."
+            ),
+        }
+        return httpx.Response(204, request=request)
+
+    with httpx.Client(transport=httpx.MockTransport(handler)) as client:
+        deliveries = deliver_notifications(
+            event,
+            (NotificationConfig(type="discord", url_env="PULSE_DISCORD_WEBHOOK_URL"),),
+            environment={"PULSE_DISCORD_WEBHOOK_URL": "https://discord.com/api/webhooks/example"},
+            client=client,
+        )
+
+    assert deliveries[0].channel == "discord"
+    assert deliveries[0].succeeded is True
+
+
+def test_deliver_notifications_reports_missing_discord_configuration() -> None:
+    """A missing Discord environment variable should not make a network request."""
+    deliveries = deliver_notifications(
+        make_event(),
+        (NotificationConfig(type="discord", url_env="PULSE_DISCORD_WEBHOOK_URL"),),
+        environment={},
+    )
+
+    assert deliveries[0].channel == "discord"
+    assert deliveries[0].succeeded is False
+    assert "PULSE_DISCORD_WEBHOOK_URL" in deliveries[0].message

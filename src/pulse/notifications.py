@@ -53,13 +53,16 @@ def _deliver_notification(
     environment: Mapping[str, str],
     client: httpx.Client,
 ) -> NotificationDelivery:
-    """Send one console or webhook notification."""
+    """Send one console, generic webhook, or Discord notification."""
     if notification.type == "console":
         return NotificationDelivery(
             channel="console",
             succeeded=True,
             message=_event_message(event),
         )
+
+    if notification.type == "discord":
+        return _deliver_discord(event, notification, environment, client)
 
     url_env = notification.url_env
     webhook_url = environment.get(url_env) if url_env is not None else None
@@ -87,6 +90,39 @@ def _deliver_notification(
     )
 
 
+def _deliver_discord(
+    event: AlertEvent,
+    notification: NotificationConfig,
+    environment: Mapping[str, str],
+    client: httpx.Client,
+) -> NotificationDelivery:
+    """Send one alert event using Discord's webhook payload format."""
+    url_env = notification.url_env
+    webhook_url = environment.get(url_env) if url_env is not None else None
+    if not webhook_url:
+        return NotificationDelivery(
+            channel="discord",
+            succeeded=False,
+            message=f"Discord webhook environment variable '{url_env}' is not set.",
+        )
+
+    try:
+        response = client.post(webhook_url, json=_discord_payload(event))
+        response.raise_for_status()
+    except httpx.HTTPError as error:
+        return NotificationDelivery(
+            channel="discord",
+            succeeded=False,
+            message=f"Discord webhook delivery failed: {error}",
+        )
+
+    return NotificationDelivery(
+        channel="discord",
+        succeeded=True,
+        message="Discord webhook delivery succeeded.",
+    )
+
+
 def _event_message(event: AlertEvent) -> str:
     """Format a concise human-readable alert notification."""
     state = "ALERT" if event.type == "opened" else "RECOVERED"
@@ -103,4 +139,12 @@ def _event_payload(event: AlertEvent) -> dict[str, str]:
         "endpoint": evaluation.endpoint.name,
         "status": evaluation.status,
         "message": evaluation.message,
+    }
+
+
+def _discord_payload(event: AlertEvent) -> dict[str, object]:
+    """Build a Discord-safe webhook payload without allowing mentions."""
+    return {
+        "content": _event_message(event)[:2000],
+        "allowed_mentions": {"parse": []},
     }
